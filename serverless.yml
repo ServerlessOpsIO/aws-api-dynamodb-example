@@ -1,0 +1,35 @@
+# <DESCRIBE SERVICE>
+service: aws-api-dynamodb-example
+
+plugins:
+  - serverless-python-requirements
+
+
+custom:
+  stage: "${opt:stage, env:SLS_STAGE, 'dev'}"
+  profile: "${opt:aws-profile, env:AWS_PROFILE, env:AWS_DEFAULT_PROFILE, 'default'}"
+  log_level: "${env:LOG_LEVEL, 'INFO'}"
+
+  pythonRequirements:
+    dockerizePip: false
+
+
+provider:
+  name: aws
+  runtime: python3.6
+  stage: ${self:custom.stage}
+  profile: ${self:custom.profile}
+  environment:
+    LOG_LEVEL: ${self:custom.log_level}
+  stackTags:
+    x-service: aws-api-dynamodb-example
+    x-stack: ${self:service}-${self:provider.stage}
+
+
+functions:
+  Action:
+    handler: handlers/action.handler
+    description: "<DESCRIPTION>"
+    memorySize: 128
+    timeout: 30
+
