@@ -3,7 +3,7 @@ service: aws-api-dynamodb-example
 
 plugins:
   - serverless-python-requirements
-
+  - serverless-dynamodb-autoscaling
 
 custom:
   stage: "${opt:stage, env:SLS_STAGE, 'dev'}"
@@ -13,7 +13,18 @@ custom:
   pythonRequirements:
     dockerizePip: false
 
+  # DynamoDB
   ddb_table_hash_key: "_id"
+  capacities:
+    - table: ItemsTable
+      read:
+        minimum: 5
+        maximum: 1000
+        usage: 0.75
+      write:
+        minimum: 5
+        maximum: 200
+        usage: 0.5
 
 
 provider:
