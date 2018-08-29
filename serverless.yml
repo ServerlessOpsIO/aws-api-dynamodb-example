@@ -41,6 +41,7 @@ provider:
     - Effect: Allow
       Action:
         - dynamodb:PutItem
+        - dynamodb:GetItem
       Resource:
         Fn::GetAtt:
           - ItemsTable
@@ -60,6 +61,20 @@ functions:
       - http:
           method: POST
           path: /item
+
+  GetItem:
+    handler: handlers/get_item.handler
+    description: "get item in DynamoDB table"
+    memorySize: 128
+    timeout: 30
+    environment:
+      DDB_TABLE_NAME:
+        Ref: ItemsTable
+      DDB_TABLE_HASH_KEY: ${self:custom.ddb_table_hash_key}
+    events:
+      - http:
+          method: GET
+          path: /item/{_id}
 
 resources:
   Resources:
