@@ -16,11 +16,6 @@ dynamodb = boto3.resource('dynamodb')
 DDT = dynamodb.Table(DDB_TABLE_NAME)
 
 
-def _get_body_from_event(event):
-    '''Get data from event body'''
-    return json.loads(event.get('body'))
-
-
 def _put_item(item):
     '''Put record item'''
     DDT.put_item(
@@ -33,7 +28,7 @@ def handler(event, context):
     '''Function entry'''
     _logger.debug('Event received: {}'.format(json.dumps(event)))
 
-    item = _get_body_from_event(event)
+    item = json.loads(event.get('body'))
     _put_item(item)
 
     resp = {
