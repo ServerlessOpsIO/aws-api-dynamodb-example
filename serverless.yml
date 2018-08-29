@@ -13,6 +13,8 @@ custom:
   pythonRequirements:
     dockerizePip: false
 
+  ddb_table_hash_key: "_id"
+
 
 provider:
   name: aws
@@ -24,12 +26,57 @@ provider:
   stackTags:
     x-service: aws-api-dynamodb-example
     x-stack: ${self:service}-${self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+      Resource:
+        Fn::GetAtt:
+          - ItemsTable
+          - Arn
 
 
 functions:
-  Action:
-    handler: handlers/action.handler
-    description: "<DESCRIPTION>"
+  PutItem:
+    handler: handlers/put_item.handler
+    description: "Put item in DynamoDB table"
     memorySize: 128
     timeout: 30
+    environment:
+      DDB_TABLE_NAME:
+        Ref: ItemsTable
+    events:
+      - http:
+          method: POST
+          path: /item
+
+resources:
+  Resources:
+    ItemsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: ${self:custom.ddb_table_hash_key}
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ${self:custom.ddb_table_hash_key}
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+
+  Outputs:
+    ItemUrl:
+      Description: "URL of service"
+      Value:
+        Fn::Join:
+          - ""
+          - - "https://"
+            - Ref: ApiGatewayRestApi
+            - ".execute-api."
+            - Ref: AWS::Region
+            - ".amazonaws.com/${self:custom.stage}"
+            - "/item"
+      Export:
+        Name: "${self:service}-${self:provider.stage}-ItemsUrl"
 
