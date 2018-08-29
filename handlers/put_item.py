@@ -5,6 +5,7 @@ import logging
 import os
 
 import boto3
+from tenacity import retry, stop_after_delay, wait_random_exponential
 
 log_level = os.environ.get('LOG_LEVEL', 'INFO')
 logging.root.setLevel(logging.getLevelName(log_level))  # type: ignore
@@ -16,6 +17,7 @@ dynamodb = boto3.resource('dynamodb')
 DDT = dynamodb.Table(DDB_TABLE_NAME)
 
 
+@retry(wait=wait_random_exponential(), stop=stop_after_delay(28))
 def _put_item(item):
     '''Put record item'''
     DDT.put_item(
