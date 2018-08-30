@@ -46,21 +46,45 @@ provider:
         Fn::GetAtt:
           - ItemsTable
           - Arn
+    - Effect: Allow
+      Action:
+        - sqs:SendMessage
+      Resource:
+        Fn::GetAtt:
+          - SqsQueue
+          - Arn
 
 
 functions:
   PutItem:
     handler: handlers/put_item.handler
-    description: "Put item in DynamoDB table"
+    description: "Put item in SQS queue"
     memorySize: 128
     timeout: 30
     environment:
-      DDB_TABLE_NAME:
-        Ref: ItemsTable
+      SQS_QUEUE_URL:
+        Ref: SqsQueue
     events:
       - http:
           method: POST
           path: /item
+
+  WriteItem:
+    handler: handlers/write_item.handler
+    description: "Write item to DynamoDB table"
+    memorySize: 128
+    timeout: 300
+    reservedConcurrency: 100
+    environment:
+      DDB_TABLE_NAME:
+        Ref: ItemsTable
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - SqsQueue
+              - Arn
+          batchSize: 10
 
   GetItem:
     handler: handlers/get_item.handler
@@ -90,6 +114,9 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
+
+    SqsQueue:
+      Type: "AWS::SQS::Queue"
 
   Outputs:
     ItemUrl:

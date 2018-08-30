@@ -12,30 +12,33 @@ logging.root.setLevel(logging.getLevelName(log_level))  # type: ignore
 _logger = logging.getLogger(__name__)
 
 # DynamoDB
-SQS_QUEUE_URL = os.environ.get('SQS_QUEUE_URL')
-SQS = boto3.client('sqs')
+DDB_TABLE_NAME = os.environ.get('DDB_TABLE_NAME')
+dynamodb = boto3.resource('dynamodb')
+DDT = dynamodb.Table(DDB_TABLE_NAME)
 
 
 @retry(wait=wait_random_exponential(), stop=stop_after_delay(28))
-def _send_message(msg):
+def _put_item(item):
     '''Put record item'''
-    SQS.send_message(
-        QueueUrl=SQS_QUEUE_URL,
-        MessageBody=msg
+    resp = DDT.put_item(
+        TableName=DDB_TABLE_NAME,
+        Item=item
     )
+
+    return resp
 
 
 def handler(event, context):
     '''Function entry'''
     _logger.debug('Event received: {}'.format(json.dumps(event)))
 
-    msg = event.get('body')
-    _send_message(msg)
+    resp_list = []
+    for r in event.get('Records', []):
+        item = json.loads(r.get('body'))
+        resp = _put_item(item)
+        resp_list.append(resp)
 
-    resp = {
-        'statusCode': 201,
-        'body': json.dumps({'status': 'QUEUED'})
-    }
-    _logger.debug('Response: {}'.format(json.dumps(resp)))
-    return resp
+    _logger.debug('Responses: {}'.format(json.dumps(resp_list)))
+
+    return resp_list
 
